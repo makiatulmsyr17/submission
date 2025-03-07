@@ -73,8 +73,8 @@ def create_total_rentals_per_hour_df(hour_df):
     return top_5
 
 
-days_df = pd.read_csv("day_clean_df.csv")
-hours_df = pd.read_csv("hour_clean_df.csv")
+days_df = pd.read_csv("dashboard/day_clean_df.csv")
+hours_df = pd.read_csv("dashboard/hour_clean_df.csv")
 
 datetime_columns = ["dteday"]
 days_df.sort_values(by="dteday", inplace=True)
