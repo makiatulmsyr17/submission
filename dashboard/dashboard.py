@@ -170,16 +170,14 @@ with col2:
 st.subheader("Kinerja Penyewaan Sepeda dalam Beberapa Tahun Terakhir")
 # Menggunakan style dengan latar belakang putih
 sns.set_style("white")
-# Tentukan tahun yang akan diwarnai (misalnya tahun 2011)
-highlight_year = 2011
-# Tentukan warna: tahun yang disorot berwarna biru, lainnya abu-abu
-colors = ["#90CAF9" if year ==
-          highlight_year else "#D3D3D3" for year in performance_per_year_df["Year"]]
+# Tentukan tahun dengan penyewaan tertinggi
+highlight_year = performance_per_year_df.loc[performance_per_year_df["total_rentals"].idxmax(), "Year"]
+# Tentukan warna: tahun dengan penyewaan tertinggi berwarna biru, lainnya abu-abu
+colors = ["#90CAF9" if year == highlight_year else "#D3D3D3" for year in performance_per_year_df["Year"]]
 # Membuat figure dan axis
 fig, ax = plt.subplots(figsize=(15, 8))
 # Membuat barplot untuk total penyewaan per tahun
-sns.barplot(x="Year", y="total_rentals",
-            data=performance_per_year_df, palette=colors, ax=ax)
+sns.barplot(x="Year", y="total_rentals", data=performance_per_year_df, palette=colors, ax=ax)
 # Menampilkan kembali garis pinggir (spines)
 for spine in ax.spines.values():
     spine.set_visible(True)
@@ -189,12 +187,14 @@ ax.set_ylabel("Total Rentals", fontsize=20)
 ax.set_xlabel("Year", fontsize=20)
 ax.tick_params(axis='y', labelsize=15)
 ax.tick_params(axis='x', labelsize=15)
+# Memformat angka di sumbu y agar tampil dengan nilai asli (ribuan)
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
 # Menampilkan grafik di Streamlit
 st.pyplot(fig)
 
 
+
 st.subheader("Tren rata-rata penyewaan sepeda per bulan sepanjang tahun 2012")
-# Correct order of months
 # Correct order of months
 month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
