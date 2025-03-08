@@ -260,22 +260,33 @@ st.pyplot(fig)
 
 
 st.subheader("Distribusi penyewaan sepeda antara hari kerja dan akhir pekan")
+# Mengelompokkan data berdasarkan hari
 total_rentals = total_rentals_per_day_df.groupby("Day")["total_rentals"].sum()
+
+# Menentukan indeks dengan nilai tertinggi
+max_index = total_rentals.idxmax()
+
+# Menentukan warna, dengan nilai tertinggi diberi warna biru
+colors = ["#D3D3D3"] * len(total_rentals)
+colors[list(total_rentals.index).index(max_index)] = "#90CAF9"  # Warna biru untuk nilai tertinggi
+
 # Menghapus latar belakang grid
 sns.set_style("white")
-# Membuat figure dan axis
+
 # Membuat figure dan axis
 fig, ax = plt.subplots(figsize=(8, 5))
+
 # Membuat pie chart
 ax.pie(
     total_rentals,
     labels=total_rentals.index,
     autopct="%1.1f%%",
-    colors=["#90CAF9", "#D3D3D3"],
+    colors=colors,
     startangle=90,
     wedgeprops={"edgecolor": "black"}
 )
-# Menampilkan plot
+
+# Menampilkan plot di Streamlit
 st.pyplot(fig)
 
 
