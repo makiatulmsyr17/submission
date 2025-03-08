@@ -9,9 +9,10 @@ sns.set(style='dark')
 
 # Funtion
 
-def create_performance_per_year_df(day_df):
+def create_performance_per_year_df(humidity_count_df):
     # Mengelompokkan berdasarkan tahun dan menghitung total penyewaan
-    performance_per_year = day_df.groupby("yr")[["cnt"]].sum().reset_index()
+    performance_per_year = humidity_count_df.groupby(
+        "yr")[["cnt"]].sum().reset_index()
     # Mengganti nama kolom agar lebih deskriptif
     performance_per_year.columns = ["Year", "total_rentals"]
     # Mengurutkan berdasarkan total penyewaan secara menurun
@@ -20,21 +21,22 @@ def create_performance_per_year_df(day_df):
     return performance_per_year
 
 
-def create_avg_rentals_per_month_2012_df(day_df):
+def create_avg_rentals_per_month_2012_df(humidity_count_df):
     # Filter data hanya untuk tahun 2012
-    avg_permonth_2012 = day_df[day_df["yr"] == "2012"].groupby(
+    avg_rentals_per_month_2012_df = humidity_count_df[humidity_count_df["yr"] == 2012].groupby(
         "mnth")[["cnt"]].mean().reset_index()
     # Mengganti nama kolom agar lebih deskriptif
-    avg_permonth_2012.columns = ["Month", "avg_rentals"]
+    avg_rentals_per_month_2012_df.columns = ["Month", "avg_rentals"]
     # Mengurutkan berdasarkan rata-rata penyewaan tertinggi
-    avg_permonth_2012 = avg_permonth_2012.sort_values(
+    avg_rentals_per_month_2012_df = avg_rentals_per_month_2012_df.sort_values(
         by="avg_rentals", ascending=False)
-    return avg_permonth_2012
+    return avg_rentals_per_month_2012_df
 
 
-def create_total_rentals_per_season_df(day_df):
+def create_total_rentals_per_season_df(humidity_count_df):
     # Grouping data berdasarkan season dan menjumlahkan total penyewaan untuk setiap season
-    rentals_per_season = day_df.groupby("season")[["cnt"]].sum().reset_index()
+    rentals_per_season = humidity_count_df.groupby(
+        "season")[["cnt"]].sum().reset_index()
     # Memastikan kolom "season" terisi dengan benar
     rentals_per_season["season"] = rentals_per_season["season"]
     # Mengganti nama kolom agar lebih deskriptif
@@ -45,9 +47,9 @@ def create_total_rentals_per_season_df(day_df):
     return rentals_per_season
 
 
-def create_total_rentals_per_day_df(day_df):
+def create_total_rentals_per_day_df(humidity_count_df):
     # Grouping data berdasarkan workingday dan menjumlahkan total penyewaan
-    rentals_working_day = day_df.groupby(
+    rentals_working_day = humidity_count_df.groupby(
         "workingday")[["cnt"]].sum().reset_index()
     # Mengganti nama kolom agar lebih deskriptif
     rentals_working_day.columns = ["Day", "total_rentals"]
@@ -73,8 +75,25 @@ def create_total_rentals_per_hour_df(hour_df):
     return top_5
 
 
-days_df = pd.read_csv("dashboard/day_clean_df.csv")
-hours_df = pd.read_csv("dashboard/hour_clean_df.csv")
+def create_density_category(humidity_count_df):
+    # Menentukan batasan kategori kepadatan
+    bins = [0, 2000, 5000, float('inf')]
+    labels = ['Sepi', 'Sedang', 'Ramai']
+
+    # Menerapkan binning ke kolom 'cnt'
+    humidity_count_df['kategori_kepadatan'] = pd.cut(
+        humidity_count_df['cnt'], bins=bins, labels=labels, right=False)
+
+    # Menyimpan hasil dalam DataFrame baru
+    density_category_df = humidity_count_df[[
+        'dteday', 'cnt', 'kategori_kepadatan']]
+
+    return density_category_df  # Mengembalikan hasil
+
+
+# Read data
+days_df = pd.read_csv("day_clean_df.csv")
+hours_df = pd.read_csv("hour_clean_df.csv")
 
 datetime_columns = ["dteday"]
 days_df.sort_values(by="dteday", inplace=True)
@@ -122,6 +141,8 @@ total_rentals_per_season_df = create_total_rentals_per_season_df(main_df_days)
 total_rentals_per_day_df = create_total_rentals_per_day_df(main_df_days)
 # Memanggil fungsi create_total_rentals_per_hour_df untuk mendapatkan 5 jam dengan total penyewaan tertinggi
 total_rentals_per_hour_df = create_total_rentals_per_hour_df(main_df_hour)
+# Memanggil fungsi create_density_category untuk mengelompokkan kepadatan penyewaan
+density_category_df = create_density_category(main_df_days)
 
 
 # Visualisasi
@@ -146,41 +167,34 @@ with col2:
     st.metric("Total Registered", value=total_sum)
 
 
-st.subheader("kinerja penyewaan sepeda dalam beberapa tahun terakhir")
-
-# Set style with no background
+st.subheader("Kinerja Penyewaan Sepeda dalam Beberapa Tahun Terakhir")
+# Menggunakan style dengan latar belakang putih
 sns.set_style("white")
-
-# Tentukan tahun yang akan diwarnai (tahun 2012)
+# Tentukan tahun yang akan diwarnai (misalnya tahun 2011)
 highlight_year = 2011
-
-# Tentukan warna: tahun 2012 akan memiliki warna biru, yang lain warna abu-abu muda
+# Tentukan warna: tahun yang disorot berwarna biru, lainnya abu-abu
 colors = ["#90CAF9" if year ==
           highlight_year else "#D3D3D3" for year in performance_per_year_df["Year"]]
-# Buat figure dan axis
+# Membuat figure dan axis
 fig, ax = plt.subplots(figsize=(15, 8))
-# Buat barplot untuk total sewa per tahun
+# Membuat barplot untuk total penyewaan per tahun
 sns.barplot(x="Year", y="total_rentals",
             data=performance_per_year_df, palette=colors, ax=ax)
-# Hilangkan background dan border
-ax.set_facecolor("white")
+# Menampilkan kembali garis pinggir (spines)
 for spine in ax.spines.values():
-    spine.set_visible(False)
-# Set label dan judul
+    spine.set_visible(True)
+    spine.set_linewidth(1)  # Atur ketebalan garis jika perlu
+# Menambahkan label dan judul
 ax.set_ylabel("Total Rentals", fontsize=20)
 ax.set_xlabel("Year", fontsize=20)
 ax.tick_params(axis='y', labelsize=15)
 ax.tick_params(axis='x', labelsize=15)
-# Tampilkan plot
+# Menampilkan grafik di Streamlit
 st.pyplot(fig)
 
 
 st.subheader("Tren rata-rata penyewaan sepeda per bulan sepanjang tahun 2012")
-# Sample DataFrame (replace with your actual data)
-avg_rentals_per_month_2012_df = pd.DataFrame({
-    "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    "avg_rentals": [500, 600, 700, 650, 800, 900, 950, 1000, 1050, 1100, 1150, 1200]
-})
+# Correct order of months
 # Correct order of months
 month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -199,10 +213,11 @@ ax.plot(avg_rentals_per_month_2012_df["Month"], avg_rentals_per_month_2012_df["a
 ax.set_facecolor("white")   # Background color of the plot
 fig.patch.set_facecolor("white")  # Background color of the figure
 ax.spines["top"].set_visible(False)  # Remove top border
-ax.spines["right"].set_visible(False)  # Remove right border
-# Set the Y-axis to start at zero
+# Remove right border# Set the Y-axis to start at zero
+ax.spines["right"].set_visible(False)
 # Add a little margin at the top
 ax.set_ylim(0, avg_rentals_per_month_2012_df["avg_rentals"].max() + 500)
+# Set title and labels
 plt.xlabel("Month", fontsize=12)
 plt.ylabel("Average Rentals", fontsize=12)
 plt.xticks(fontsize=10, rotation=45)  # To avoid overlapping month names
@@ -214,34 +229,33 @@ st.pyplot(fig)
 
 
 st.subheader("Total Penyewaan Sepeda Setiap Musim")
-# Using style with no background
+# Menggunakan style dengan latar belakang putih
 sns.set_style("white")
-# Determining the season with the highest rentals
+# Menentukan musim dengan jumlah penyewaan tertinggi
 max_season = total_rentals_per_season_df.loc[total_rentals_per_season_df["total_rentals"].idxmax(
 ), "Season"]
-# Defining colors: the season with the highest rentals is blue, others are gray
+# Menentukan warna: musim dengan jumlah penyewaan tertinggi berwarna biru, lainnya abu-abu
 colors = ["#90CAF9" if season ==
           max_season else "#D3D3D3" for season in total_rentals_per_season_df["Season"]]
-# Creating figure and axis
+# Membuat figure dan axis
 fig, ax = plt.subplots(figsize=(12, 6))
-# Creating barplot for total rentals per season
+# Membuat barplot untuk total penyewaan per musim
 sns.barplot(x="Season", y="total_rentals",
             data=total_rentals_per_season_df, palette=colors, ax=ax)
-# Adjusting y-axis limits for better proportionality
+# Menyesuaikan batas atas sumbu y agar lebih proporsional
 ax.set_ylim(0, total_rentals_per_season_df["total_rentals"].max() * 1.1)
-# Formatting y-axis labels for easier readability
-ax.yaxis.set_major_formatter(mticker.StrMethodFormatter(
-    '{x:,.0f}'))  # Format numbers with commas
-# Removing background and borders
-ax.set_facecolor("white")
+# Format sumbu y agar lebih mudah dibaca
+ax.yaxis.set_major_formatter(mticker.StrMethodFormatter('{x:,.0f}'))
+# Menampilkan kembali garis pinggir (spines)
 for spine in ax.spines.values():
-    spine.set_visible(False)
-# Adding labels and title
-ax.set_ylabel("total_rentals", fontsize=15)
-ax.set_xlabel("Season", fontsize=15)
+    spine.set_visible(True)
+    spine.set_linewidth(1)  # Atur ketebalan garis pinggir jika perlu
+# Menambahkan label dan judul
+ax.set_ylabel("Jumlah Penyewaan", fontsize=15)
+ax.set_xlabel("Musim", fontsize=15)
 ax.tick_params(axis='y', labelsize=12)
 ax.tick_params(axis='x', labelsize=12)
-# Displaying the plot
+# Menampilkan grafik di Streamlit
 st.pyplot(fig)
 
 
@@ -265,34 +279,70 @@ ax.pie(
 st.pyplot(fig)
 
 
-st.subheader("Top Hours with the Highest Bikes Rentals")
-# Taking the top 5 hours with the highest total rentals
+st.subheader("Jam Puncak dengan Penyewaan Sepeda Tertinggi")
+
+# Mengambil 5 jam dengan jumlah penyewaan tertinggi
 top_5 = total_rentals_per_hour_df.nlargest(5, "total_rentals")
-# Set all bars to gray
+
+# Set semua bar berwarna abu-abu
 colors = ["#D3D3D3"] * len(top_5)
-# Change the color of the third bar to blue
-colors[2] = "#90CAF9"  # Blue for the 3rd bar
-# Create figure and axis
+
+# Ubah warna bar ke-3 menjadi biru
+colors[2] = "#90CAF9"
+
+# Membuat figure dan axis
 fig, ax = plt.subplots(figsize=(10, 6))
-# Create a bar chart with the pre-defined colors
+
+# Membuat bar chart dengan warna yang telah ditentukan
 sns.barplot(
     x="Hour",
     y="total_rentals",
     data=top_5,
-    palette=colors,  # Using the predefined colors
+    palette=colors,  # Menggunakan warna yang telah ditentukan
     ax=ax
 )
-# Remove border lines
+
+# Menampilkan kembali garis pinggir (spines)
 for spine in ax.spines.values():
-    spine.set_visible(False)
-# Adjust the upper limit of the y-axis to make the chart more spacious
+    spine.set_visible(True)
+    spine.set_linewidth(1)  # Atur ketebalan garis pinggir jika perlu
+
+# Menyesuaikan batas atas sumbu y agar lebih luas
 ax.set_ylim(0, top_5["total_rentals"].max() * 1.1)
-# Format the y-axis to make the numbers easier to read
+
+# Format sumbu y agar lebih mudah dibaca
 ax.yaxis.set_major_formatter(mticker.StrMethodFormatter('{x:,.0f}'))
-# Add title and labels
-ax.set_xlabel("Hour", fontsize=15)
-ax.set_ylabel("total_rentals", fontsize=15)
+
+# Menambahkan judul dan label
+ax.set_xlabel("Jam", fontsize=15)
+ax.set_ylabel("Jumlah Penyewaan", fontsize=15)
 ax.tick_params(axis='x', labelsize=12)
 ax.tick_params(axis='y', labelsize=12)
-# Show the plot
+
+# Menampilkan grafik di Streamlit
+st.pyplot(fig)
+
+
+st.subheader("Distribusi Kategori Kepadatan Penyewaan Sepeda")
+
+# Menghitung jumlah hari dalam setiap kategori kepadatan
+kategori_counts = density_category_df['kategori_kepadatan'].value_counts()
+# Mengurutkan kategori sesuai urutan yang diinginkan
+order = ["Sepi", "Sedang", "Ramai"]
+# Mengisi 0 jika ada kategori yang tidak muncul
+kategori_counts = kategori_counts.reindex(order, fill_value=0)
+# Menentukan warna: kategori dengan nilai tertinggi berwarna biru, lainnya abu-abu
+colors = ['#B0BEC5', '#B0BEC5', '#B0BEC5']  # Default semua abu-abu
+max_index = kategori_counts.idxmax()  # Cari kategori dengan nilai tertinggi
+# Ambil posisi di dalam urutan yang kita tentukan
+max_position = order.index(max_index)
+colors[max_position] = '#90CAF9'  # Ubah warna tertinggi menjadi biru
+# Membuat bar chart
+fig, ax = plt.subplots(figsize=(6, 4))  # Simpan figure dan axis
+kategori_counts.plot(kind='bar', color=colors, ax=ax)  # Plot ke dalam axis
+# Menambahkan label dan judul
+ax.set_xlabel('Kategori Kepadatan')
+ax.set_ylabel('Jumlah Hari')
+ax.set_xticklabels(order, rotation=0)
+# Menampilkan grafik di Streamlit
 st.pyplot(fig)
